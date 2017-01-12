@@ -40,7 +40,7 @@ log.setLevel(logging.DEBUG)
 #---------------------------------------------------------------------------#
 # FAE Sensor Configuration
 #---------------------------------------------------------------------------#
-fae_agent = cdll.LoadLibrary("/home/pi/Documents/twc_agent.so")
+fae_agent = cdll.LoadLibrary("/home/pi/mfg-tile/twc_agent.so")
 fae_init = fae_agent.fae_init
 
 queryADT75 = fae_agent.queryADT75
