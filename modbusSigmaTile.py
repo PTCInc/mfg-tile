@@ -20,6 +20,8 @@ from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusSequentialDataBlock
 from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from pymodbus.transaction import ModbusRtuFramer, ModbusAsciiFramer
+from struct import pack, unpack
+from ctypes import *
 
 #---------------------------------------------------------------------------#
 # import the twisted libraries we need
@@ -38,26 +40,35 @@ log.setLevel(logging.DEBUG)
 #---------------------------------------------------------------------------#
 # FAE Sensor Configuration
 #---------------------------------------------------------------------------#
-from ctypes import cdll
 fae_agent = cdll.LoadLibrary("/home/pi/Documents/twc_agent.so")
 fae_init = fae_agent.fae_init
+
 queryADT75 = fae_agent.queryADT75
+queryADT75.restype = c_float
+
 querySHT21_Temp = fae_agent.querySHT21_Temp
+querySHT21_Temp.restype = c_float
+
 querySHT21_Humidity = fae_agent.querySHT21_Humidity
+querySHT21_Humidity.restype = c_float
+
 queryADXL_x=fae_agent.queryADXL_x
+queryADXL_x.restype = c_float
+
 queryADXL_y=fae_agent.queryADXL_y
+queryADXL_y.restype = c_float
+
 queryADXL_z=fae_agent.queryADXL_z
+queryADXL_z.restype = c_float
+
 queryTSL = fae_agent.queryTSL
+queryTSL.restype = c_float
+
 queryMPL_Pressure = fae_agent.queryMPL_Pressure
+queryMPL_Pressure.restype = c_float
+
 queryMPL_Altitude = fae_agent.queryMPL_Altitude
-
-
-
-#import sys
-#import Adafruit_DHT
-
-#sensor = Adafruit_DHT.DHT11
-#pin = 17
+queryMPL_Altitude.restype = c_float
 
 #---------------------------------------------------------------------------#
 # define your callback process
@@ -91,16 +102,35 @@ def updating_writer(a):
     register = 3
     slave_id = 0x00
     address  = 0x00
-    values   = context[slave_id].getValues(register, address, count=8)
+    values   = context[slave_id].getValues(register, address, count=18)
+    newValues = []
+
     temperatureADT75 = queryADT75()
+    newValues.extend(float_to_uint16(temperatureADT75))
+
     temperatureSHT21 = querySHT21_Temp()
+    newValues.extend(float_to_uint16(temperatureSHT21))
+
     humidity = querySHT21_Humidity()
+    newValues.extend(float_to_uint16(humidity))
+
     accelX  = queryADXL_x()
+    newValues.extend(float_to_uint16(accelX))
+
     accelY  = queryADXL_y()
+    newValues.extend(float_to_uint16(accelY))
+
     accelZ  = queryADXL_z()
+    newValues.extend(float_to_uint16(accelZ))
+
     lux = queryTSL()
+    newValues.extend(float_to_uint16(lux))
+
     pressure = queryMPL_Pressure()
+    newValues.extend(float_to_uint16(pressure))
+
     altitude = queryMPL_Altitude()
+    newValues.extend(float_to_uint16(altitude))
 
     # humidity, bull = (random.randint(0,9), random.randint(0,9))
 
@@ -113,17 +143,14 @@ def updating_writer(a):
 #    if humidity is None or temperature is None:
 #	humidity, temperature = (0, 0)
 
-    values[0] = temperatureADT75
-    values[1] = temperatureSHT21
-    values[2] = humidity
-    values[3] = accelX
-    values[4] = accelY
-    values[5] = accelZ
-    values[6] = lux
-    values[7] = pressure
     # values[8] = altitude
-    log.debug("new values: " + str(values))
-    context[slave_id].setValues(register, address, values)
+
+    #log.debug("new values: " + str(values))
+    context[slave_id].setValues(register, address, newValues)
+
+def float_to_uint16(number):
+    i1, i2 = unpack('HH', pack('f', number))
+    return i1, i2
 
 #---------------------------------------------------------------------------#
 # initialize your data store
@@ -149,7 +176,7 @@ identity.MajorMinorRevision = '1.0'
 #---------------------------------------------------------------------------#
 # run the server you want
 #---------------------------------------------------------------------------#
-time = 5 # 5 seconds delay
+time = 1 # 5 seconds delay
 IP_Address = initialize()
 loop = LoopingCall(f=updating_writer, a=(context,))
 loop.start(time, now=False) # initially delay by time
