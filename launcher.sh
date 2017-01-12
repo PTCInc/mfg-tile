@@ -4,5 +4,5 @@
 
 sleep 30
 cd /
-cd /home/pi/Documents
+cd /home/pi/mfg-tile
 sudo python modbusSigmaTile.py
