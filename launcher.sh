@@ -5,4 +5,4 @@
 sleep 30
 cd /
 cd /home/pi/mfg-tile
-sudo python modbusSigmaTile.py
+sudo python SigmaTile_SenseHat.py
