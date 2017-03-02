@@ -65,7 +65,7 @@ def display_manager(sense, context, IP_Address):
     o = [255,127,0]
     y = [255,255,0]
     w = [255,255,255]
-    g = [0,255,0]
+    g = [0,120,0]
     lg =[0,100,0]
     b = [0,0,255]
     i = [75,0,130]
@@ -135,7 +135,7 @@ def display_manager(sense, context, IP_Address):
         ]
     previousValues = 100
 
-    for i in range (0, 10):
+    for i in range (0, 3):
         sense.show_message(IP_Address)
 
     logging.info('Initialization Complete')
@@ -210,7 +210,7 @@ def initialize(): # Function Initialization
         except:
             for image in range(3):
                 sense.set_pixels(connecting_images[image])
-                sleep(2)
+                sleep(1)
         else:
             network_connected = True
     return IP_Address, sense
