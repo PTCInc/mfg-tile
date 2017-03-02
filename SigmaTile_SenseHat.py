@@ -72,7 +72,7 @@ def display_manager(sense, context, IP_Address):
     v = [159,0,255]
     e = [0,0,0]
 
-    good_image = [
+    image_running = [
         e,e,g,g,g,g,e,e,
         e,g,g,g,g,g,g,e,
         g,g,g,g,g,w,g,g,
@@ -113,7 +113,7 @@ def display_manager(sense, context, IP_Address):
         e,e,b,e,e,b,e,e,
         e,e,e,e,e,e,e,e,
         ])
-    alert_image = [
+    image_warning = [
         e,e,e,y,e,e,e,e,
         e,e,e,y,e,e,e,e,
         e,e,y,r,y,e,e,e,
@@ -123,7 +123,7 @@ def display_manager(sense, context, IP_Address):
         y,y,y,r,y,y,y,e,
         y,y,y,y,y,y,y,e,
         ]
-    broken_image = [
+    image_unplannedDowntime = [
         e,e,r,r,r,r,e,e,
         e,w,r,r,r,r,w,e,
         r,r,w,r,r,w,r,r,
@@ -132,6 +132,36 @@ def display_manager(sense, context, IP_Address):
         r,r,w,r,r,w,r,r,
         e,w,r,r,r,r,w,e,
         e,e,r,r,r,r,e,e,
+        ]
+    image_plannedDowntime = [
+        e,e,b,b,b,b,e,e,
+        e,b,b,b,b,b,b,e,
+        b,b,b,b,b,w,b,b,
+        b,b,b,b,w,b,b,b,
+        b,w,b,b,w,b,b,b,
+        b,b,w,w,b,b,b,b,
+        e,b,b,w,b,b,b,e,
+        e,e,b,b,b,b,e,e,
+        ]
+    image_unavailable = [
+        e,e,w,w,w,w,e,e,
+        e,w,e,e,e,w,w,e,
+        w,e,e,e,w,w,e,w,
+        w,e,e,w,w,e,e,w,
+        w,e,w,w,e,e,e,w,
+        w,w,w,e,e,e,e,w,
+        e,w,e,e,e,e,w,e,
+        e,e,w,w,w,w,e,e,
+        ]
+    image_errorInLast24 = [
+        e,e,o,o,o,o,e,e,
+        e,o,o,w,w,o,o,e,
+        o,o,o,w,w,o,o,o,
+        o,o,w,w,w,w,o,o,
+        o,o,w,w,w,w,o,o,
+        o,w,w,w,w,w,w,o,
+        e,o,o,o,o,o,o,e,
+        e,e,o,o,o,o,e,e,
         ]
     previousValues = 100
 
@@ -144,13 +174,24 @@ def display_manager(sense, context, IP_Address):
         values = context[0x00].getValues(3, 0x18, count=1)
         if values[0] != previousValues:
             logging.info('Screen State Changing')
-	    previousValues = values[0]
+            previousValues = values[0]
             if values[0] == 0:
-                sense.set_pixels(good_image)
+                sense.set_pixels(image_running)
             elif values[0] == 1:
-                sense.set_pixels(alert_image)
+                sense.show_message("Alert Triggered!", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_warning)
             elif values[0] == 2:
-                sense.set_pixels(broken_image)
+                sense.show_message("Planned Downtime", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_plannedDowntime)
+            elif values[0] == 3:
+                sense.show_message("Unplanned Downtime!", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_unplannedDowntime)
+            elif values[0] == 4:
+                sense.show_message("Error in last 24 Hours", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_errorInLast24)
+            elif values[0] == 5:
+                sense.show_message("System Unavailable", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_unavailable)
             else:
                 sense.show_message('PTC Sigma Tile')
         else:
