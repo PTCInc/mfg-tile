@@ -4,11 +4,12 @@
 # Import Packages and Functions
 #---------------------------------------------------------------------------#
 
-import pymodbus.server.async as psa
+from pymodbus.server.async import StartTcpServer
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusSequentialDataBlock
 from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from pymodbus.transaction import ModbusRtuFramer, ModbusAsciiFramer
+import random
 
 from struct import pack, unpack
 
@@ -27,7 +28,7 @@ from sense_hat import SenseHat
 #---------------------------------------------------------------------------#
 # Worker Functions
 #---------------------------------------------------------------------------#
-def update_datastore(sense, context): # Updates the sensors
+def update_sensor_datastore(sense, context): # Updates the sensors
 
     sleep(3)
     logging.debug('Polling Sensors')
@@ -170,7 +171,6 @@ def display_manager(sense, context, IP_Address):
 
     logging.info('Initialization Complete')
     while(True):
-        #logging.info('Number of Connections {0}'.format(number_connections))
         values = context[0x00].getValues(3, 0x18, count=1)
         if values[0] != previousValues:
             logging.info('Screen State Changing')
@@ -197,6 +197,18 @@ def display_manager(sense, context, IP_Address):
         else:
             sleep(1)
 
+def part_creator(sense, context):
+    goodCount = 0
+    badCount = 0
+    sleep(3)
+    while(True):
+        failureChance = sense.temperature * .0346 - .8154
+        if (random.random() < failureChance):
+            badCount = badCount + 1
+        else:
+            goodCount = goodCount + 1
+        context[0x00].setValues(3, 0x19, [goodCount, badCount])
+        sleep(sense.pressure*.1 + 115)
 
 
 #---------------------------------------------------------------------------#
@@ -287,9 +299,8 @@ identity.MajorMinorRevision = '1.0'
 
 
 # Run the server you want
-time = 1 # 5 seconds delay
 IP_Address, sense = initialize()
-Query = threading.Thread(name = 'Query', target = update_datastore, args = (sense, context))
+Query = threading.Thread(name = 'Query', target = update_sensor_datastore, args = (sense, context))
 Query.setDaemon(True)
 Query.start()
 
@@ -297,4 +308,8 @@ Screen = threading.Thread(name = 'Screen', target = display_manager, args = (sen
 Screen.setDaemon(True)
 Screen.start()
 
-psa.StartTcpServer(context, identity=identity, address=(IP_Address, 502))
+Parts = threading.Thread(name = 'Parts', target = part_creator, args = (sense, context))
+Parts.setDaemon(True)
+Parts.start()
+
+StartTcpServer(context, identity=identity, address=(IP_Address, 502))
