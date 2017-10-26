@@ -2,7 +2,7 @@
 # launcher.sh
 #navigate home, then here, launch the python script for the pi
 
-sleep 30
+sleep 15
 cd /
 cd /home/pi/mfg-tile
-sudo python SigmaTile_SenseHat.py
+sudo python SigmaTile_SenseHat_MFG.py
