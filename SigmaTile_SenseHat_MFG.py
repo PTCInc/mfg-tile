@@ -26,11 +26,15 @@ import numpy
 from sense_hat import SenseHat
 
 #---------------------------------------------------------------------------#
-# Package Modifications
+# Global Variables
 #---------------------------------------------------------------------------#
 
 #---------------------------------------------------------------------------#
 # Worker Functions
+#---------------------------------------------------------------------------#
+
+#---------------------------------------------------------------------------#
+# Worker Function - updates the modbus server based on the sensors
 #---------------------------------------------------------------------------#
 def update_sensor_datastore(sense, context, vibrationQueue): # Updates the sensors
 
@@ -66,7 +70,13 @@ def update_sensor_datastore(sense, context, vibrationQueue): # Updates the senso
 
     	context[slave_id].setValues(register, address, newValues)
 
+#---------------------------------------------------------------------------#
+# Worker Function - manages the content displayed on the sense hat screen
+#---------------------------------------------------------------------------#
 def display_manager(sense, context, IP_Address):
+    joystickControl = 0
+    errorCode = 100
+
     r = [255,0,0]
     o = [255,127,0]
     y = [255,255,0]
@@ -78,47 +88,6 @@ def display_manager(sense, context, IP_Address):
     v = [159,0,255]
     e = [0,0,0]
 
-    image_running = [
-        e,e,g,g,g,g,e,e,
-        e,g,g,g,g,g,g,e,
-        g,g,g,g,g,w,g,g,
-        g,g,g,g,w,g,g,g,
-        g,w,g,g,w,g,g,g,
-        g,g,w,w,g,g,g,g,
-        e,g,g,w,g,g,g,e,
-        e,e,g,g,g,g,e,e,
-        ]
-    connecting_images = []
-    connecting_images.append([
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,e,b,b,e,e,e,
-        e,e,b,e,e,b,e,e,
-        e,e,e,e,e,e,e,e,
-        ])
-    connecting_images.append([
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,e,e,e,e,e,e,
-        e,e,b,b,b,b,e,e,
-        e,b,e,e,e,e,b,e,
-        e,e,e,b,b,e,e,e,
-        e,e,b,e,e,b,e,e,
-        e,e,e,e,e,e,e,e,
-        ])
-    connecting_images.append([
-        e,e,b,b,b,b,e,e,
-        e,b,e,e,e,e,b,e,
-        b,e,e,e,e,e,e,b,
-        e,e,b,b,b,b,e,e,
-        e,b,e,e,e,e,b,e,
-        e,e,e,b,b,e,e,e,
-        e,e,b,e,e,b,e,e,
-        e,e,e,e,e,e,e,e,
-        ])
     image_warning = [
         e,e,e,y,e,e,e,e,
         e,e,e,y,e,e,e,e,
@@ -129,15 +98,15 @@ def display_manager(sense, context, IP_Address):
         y,y,y,r,y,y,y,e,
         y,y,y,y,y,y,y,e,
         ]
-    image_unplannedDowntime = [
-        e,e,r,r,r,r,e,e,
-        e,w,r,r,r,r,w,e,
-        r,r,w,r,r,w,r,r,
-        r,r,r,w,w,r,r,r,
-        r,r,r,w,w,r,r,r,
-        r,r,w,r,r,w,r,r,
-        e,w,r,r,r,r,w,e,
-        e,e,r,r,r,r,e,e,
+    image_running = [
+        e,e,g,g,g,g,e,e,
+        e,g,g,g,g,g,g,e,
+        g,g,g,g,g,w,g,g,
+        g,g,g,g,w,g,g,g,
+        g,w,g,g,w,g,g,g,
+        g,g,w,w,g,g,g,g,
+        e,g,g,w,g,g,g,e,
+        e,e,g,g,g,g,e,e,
         ]
     image_plannedDowntime = [
         e,e,b,b,b,b,e,e,
@@ -149,6 +118,16 @@ def display_manager(sense, context, IP_Address):
         e,b,b,w,b,b,b,e,
         e,e,b,b,b,b,e,e,
         ]
+    image_unplannedDowntime = [
+        e,e,r,r,r,r,e,e,
+        e,w,r,r,r,r,w,e,
+        r,r,w,r,r,w,r,r,
+        r,r,r,w,w,r,r,r,
+        r,r,r,w,w,r,r,r,
+        r,r,w,r,r,w,r,r,
+        e,w,r,r,r,r,w,e,
+        e,e,r,r,r,r,e,e,
+        ]
     image_unavailable = [
         e,e,w,w,w,w,e,e,
         e,w,e,e,e,w,w,e,
@@ -159,46 +138,63 @@ def display_manager(sense, context, IP_Address):
         e,w,e,e,e,e,w,e,
         e,e,w,w,w,w,e,e,
         ]
-    image_errorInLast24 = [
-        e,e,o,o,o,o,e,e,
-        e,o,o,w,w,o,o,e,
-        o,o,o,w,w,o,o,o,
-        o,o,w,w,w,w,o,o,
-        o,o,w,w,w,w,o,o,
-        o,w,w,w,w,w,w,o,
-        e,o,o,o,o,o,o,e,
-        e,e,o,o,o,o,e,e,
-        ]
+
     previousValues = 100
 
     for i in range (0, 3):
         sense.show_message(IP_Address)
 
-    logging.info('Initialization Complete')
     while(True):
         values = context[0x00].getValues(3, 0x18, count=1)
-        if values[0] != previousValues:
-            logging.info('Screen State Changing')
+        for event in sense.stick.get_events():
+            if (event.action == 'pressed' and event.direction == 'right'):
+                if joystickControl < 3:
+                    joystickControl += 1
+                else:
+                    joystickControl = 0
+            if (event.action == 'pressed' and event.direction == 'left'):
+                if joystickControl > 0:
+                    joystickControl -= 1
+                else:
+                    joystickControl = 3
+            if (event.action == 'pressed' and event.direction == 'up'):
+                if errorCode < 105:
+                    errorCode += 1
+                else:
+                    errorCode = 100
+            if (event.action == 'pressed' and event.direction == 'down'):
+                if errorCode > 100:
+                    errorCode -= 1
+                else:
+                    errorCode = 105
+        logging.info(errorCode)
+        context[0x00].setValues(3, 0x1B, [errorCode])
+        if (values[0] != previousValues or joystickControl == 0):
+            #logging.info('Screen State Changing')
             previousValues = values[0]
-            if values[0] == 0:
-                sense.set_pixels(image_running)
-            elif values[0] == 1:
-                sense.show_message("Alert Triggered!", scroll_speed = .05, text_colour = [255,255,255])
+            joystickControl = 0
+            if values[0] == 1:
+                #sense.show_message("Alert Triggered!", scroll_speed = .05, text_colour = [255,255,255])
                 sense.set_pixels(image_warning)
             elif values[0] == 2:
-                sense.show_message("Planned Downtime", scroll_speed = .05, text_colour = [255,255,255])
-                sense.set_pixels(image_plannedDowntime)
+                sense.set_pixels(image_running)
             elif values[0] == 3:
-                sense.show_message("Unplanned Downtime!", scroll_speed = .05, text_colour = [255,255,255])
-                sense.set_pixels(image_unplannedDowntime)
+                #sense.show_message("Planned Downtime", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_plannedDowntime)
             elif values[0] == 4:
-                sense.show_message("Error in last 24 Hours", scroll_speed = .05, text_colour = [255,255,255])
-                sense.set_pixels(image_errorInLast24)
+                #sense.show_message("Unplanned Downtime!", scroll_speed = .05, text_colour = [255,255,255])
+                sense.set_pixels(image_unplannedDowntime)
             elif values[0] == 5:
-                sense.show_message("System Unavailable", scroll_speed = .05, text_colour = [255,255,255])
+                #sense.show_message("System Unavailable", scroll_speed = .05, text_colour = [255,255,255])
                 sense.set_pixels(image_unavailable)
             else:
                 sense.show_message('PTC Sigma Tile')
+        elif joystickControl == 1:
+            sense.show_message('Temperature: {} C'.format(round(sense.temperature),2))
+        elif joystickControl == 2:
+            sense.show_message('Humidity: {} %'.format(round(sense.humidity),2))
+        elif joystickControl == 3:
+            sense.show_message('Pressure: {} C'.format(round(sense.pressure),2))
         else:
             sleep(1)
 
@@ -207,8 +203,7 @@ def part_creator(sense, context):
     badCount = 0
     sleep(3)
     while(True):
-        anomaly = context[0x00].getValues(3, 0x1B, count=1)
-        logging.info(anomaly)
+        anomaly = context[0x00].getValues(3, 0x1C, count=1)
         if (anomaly[0] < 1):
             failureChance = sense.temperature * .0346 - .8154
         else:
@@ -220,11 +215,12 @@ def part_creator(sense, context):
         context[0x00].setValues(3, 0x19, [goodCount, badCount])
         sleep(sense.pressure*.0059 - 4.12)
 
-def anomaly_detection(vibrationQueue, context):
+def alert_detection(vibrationQueue, context):
     xVibration = deque([],100)
     yVibration = deque([],100)
     zVibration = deque([],100)
-    anomalyDetected = 0
+    vibrationAlertDetector = 0
+    vibrationAlert = 0
 
     while(True):
         latestSample = vibrationQueue.get()
@@ -234,24 +230,15 @@ def anomaly_detection(vibrationQueue, context):
         xVibrationMean = numpy.mean(xVibration)
         yVibrationMean = numpy.mean(yVibration)
         zVibrationMean = numpy.mean(zVibration)
-        # logging.info(xVibrationMean)
-        # logging.info(yVibrationMean)
-        # logging.info(zVibrationMean)
-        # logging.info(xVibrationMean+yVibrationMean+zVibrationMean)
-
         if((xVibrationMean + yVibrationMean + zVibrationMean) > 1.4):
-            anomalyDetected = 1000 # Persistence of the anomaly - multiply by number of minutes for anomaly to last
-            context[0x00].setValues(3, 0x18, [1])
-        elif(anomalyDetected > 0):
-            anomalyDetected = anomalyDetected - 1
+            vibrationAlertDetector = 1000 * 2 # Persistence of the anomaly - multiply by number of minutes for anomaly to last
+        elif(vibrationAlertDetector > 0):
+            vibrationAlertDetector = vibrationAlertDetector - 1
+            vibrationAlert = 1
         else:
-            context[0x00].setValues(3, 0x18, [0])
-        context[0x00].setValues(3, 0x1B, [anomalyDetected])
+            vibrationAlert = 0
 
-
-
-
-
+        context[0x00].setValues(3, 0x1C, [vibrationAlert])
 
 
 #---------------------------------------------------------------------------#
@@ -297,6 +284,7 @@ def initialize(): # Function Initialization
         e,e,b,e,e,b,e,e,
         e,e,e,e,e,e,e,e,
         ])
+
     while (network_connected==False):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -359,8 +347,8 @@ Parts = threading.Thread(name = 'Parts', target = part_creator, args = (sense, c
 Parts.setDaemon(True)
 Parts.start()
 
-Anomaly = threading.Thread(name = 'Anomaly', target = anomaly_detection, args = (vibrationQueue, context))
-Anomaly.setDaemon(True)
-Anomaly.start()
+Alert = threading.Thread(name = 'Anomaly', target = alert_detection, args = (vibrationQueue, context))
+Alert.setDaemon(True)
+Alert.start()
 
 StartTcpServer(context, identity=identity, address=(IP_Address, 502))
