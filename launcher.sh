@@ -5,4 +5,4 @@
 sleep 15
 cd /
 cd /home/pi/mfg-tile
-sudo python SigmaTile_SenseHat_MFG.py
+sudo python SigmaTile_SenseHat_V5.py
